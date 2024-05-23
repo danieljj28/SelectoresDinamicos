@@ -23,7 +23,8 @@ export class SelectorPageComponent implements OnInit{
   })
 
   public countriesByRegion: SmallCountry[] = [];
-  public borders: SmallCountry[] = []
+  public borders: SmallCountry[] = [];
+  public chooseCountry: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -47,8 +48,8 @@ export class SelectorPageComponent implements OnInit{
       switchMap( region => this.countriesService.getCountriesByRegion(region) )
     )
     .subscribe( countries => {
-      this.countriesByRegion = countries;
-      this.ordenarArray();
+      this.countriesByRegion = countries.sort((a,b) => a.name.localeCompare(b.name));
+      this.chooseCountry = false;
     })
   }
 
@@ -58,23 +59,22 @@ export class SelectorPageComponent implements OnInit{
       tap( () => this.myForm.get('border')!.setValue('') ),
       filter( (value:string) => value.length > 0),
       switchMap( alphaCode => this.countriesService.getCountryByAlphaCode(alphaCode) ),
-      switchMap( country => this.countriesService.getCountryBordersByCodes( country.borders ) )
+      switchMap( country => this.countriesService.getCountryBordersByCodes( country.borders ) ),
+      tap( borders => this.borderRequired(borders)),
     )
     .subscribe( countries => {
-      this.borders = countries;
+      this.borders = countries.sort((a,b) => a.name.localeCompare(b.name));
+      this.chooseCountry = true;
     })
   }
 
-  ordenarArray(): void {
-    this.countriesByRegion.sort(function (a, b) {
-      if (a.name > b.name) {
-        return 1;
-      }
-      if (a.name < b.name) {
-        return -1;
-      }
-      // a must be equal to b
-      return 0;
-    });
+  borderRequired(haveBorders: SmallCountry[]): void{
+    if(haveBorders.length === 0){
+      this.myForm.get('border')!.setValidators([]);
+      this.myForm.get('border')!.updateValueAndValidity();
+    }else{
+      this.myForm.get('border')!.setValidators([Validators.required]);
+      this.myForm.get('border')!.updateValueAndValidity();
+    }
   }
 }
